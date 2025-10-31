@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import taskinLogo from "@/assets/taskin_logo.png";
+import taskinLogo from "@/assets/taskin_logo.jpg";
 
 const Splash = () => {
   const navigate = useNavigate();

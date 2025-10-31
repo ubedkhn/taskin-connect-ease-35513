@@ -18,13 +18,13 @@ const Profile = () => {
       icon: Bell,
       label: "Notifications",
       description: "Manage your alerts",
-      link: "#",
+      link: "/notifications",
     },
     {
       icon: Settings,
       label: "Settings",
-      description: "App preferences",
-      link: "#",
+      description: "App preferences & account",
+      link: "/settings",
     },
     {
       icon: HelpCircle,
@@ -105,17 +105,6 @@ const Profile = () => {
           </CardContent>
         </Card>
 
-        {/* Logout */}
-        <Link to="/auth">
-          <Button
-            variant="destructive"
-            className="w-full"
-            size="lg"
-          >
-            <LogOut className="w-5 h-5 mr-2" />
-            Logout
-          </Button>
-        </Link>
 
         {/* App Version */}
         <p className="text-center text-sm text-muted-foreground">

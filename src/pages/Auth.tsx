@@ -8,7 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Mail, Lock, Users, Wrench } from "lucide-react";
 import { toast } from "sonner";
-import taskinLogo from "@/assets/taskin_logo.png";
+import taskinLogo from "@/assets/taskin_logo.jpg";
 
 const Auth = () => {
   const navigate = useNavigate();
