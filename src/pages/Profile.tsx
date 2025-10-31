@@ -12,7 +12,7 @@ const Profile = () => {
       icon: User,
       label: "Edit Profile",
       description: "Update your personal info",
-      link: "#",
+      link: "/edit-profile",
     },
     {
       icon: Bell,
@@ -56,13 +56,15 @@ const Profile = () => {
             <p className="text-primary-foreground/80">john.doe@example.com</p>
           </div>
 
-          <Button
-            variant="outline"
-            size="sm"
-            className="bg-primary-foreground/10 border-primary-foreground/20 text-primary-foreground hover:bg-primary-foreground/20"
-          >
-            Edit Profile
-          </Button>
+          <Link to="/edit-profile">
+            <Button
+              variant="outline"
+              size="sm"
+              className="bg-primary-foreground/10 border-primary-foreground/20 text-primary-foreground hover:bg-primary-foreground/20"
+            >
+              Edit Profile
+            </Button>
+          </Link>
         </div>
 
         {/* Stats */}

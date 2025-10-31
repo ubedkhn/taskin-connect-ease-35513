@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { ArrowLeft, Moon, Sun, Monitor, Users, Wrench, HelpCircle, Info, LogOut, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { ChangePasswordDialog } from "@/components/ChangePasswordDialog";
 import { Card, CardContent } from "@/components/ui/card";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
@@ -136,6 +137,8 @@ const Settings = () => {
         {/* General Options */}
         <Card>
           <CardContent className="p-2">
+            <ChangePasswordDialog />
+            <Separator />
             <Link to="/about">
               <div className="flex items-center gap-4 p-4 hover:bg-accent rounded-lg transition-colors">
                 <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">

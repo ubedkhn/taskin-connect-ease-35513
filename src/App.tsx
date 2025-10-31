@@ -11,6 +11,7 @@ import AddTask from "./pages/AddTask";
 import NearbyHelp from "./pages/NearbyHelp";
 import PostRequest from "./pages/PostRequest";
 import Profile from "./pages/Profile";
+import EditProfile from "./pages/EditProfile";
 import Settings from "./pages/Settings";
 import About from "./pages/About";
 import Help from "./pages/Help";
@@ -34,10 +35,11 @@ const App = () => (
             <Route path="/add-task" element={<AddTask />} />
             <Route path="/nearby-help" element={<NearbyHelp />} />
             <Route path="/post-request" element={<PostRequest />} />
-            <Route path="/profile" element={<Profile />} />
-            <Route path="/settings" element={<Settings />} />
-            <Route path="/about" element={<About />} />
-            <Route path="/help" element={<Help />} />
+          <Route path="/profile" element={<Profile />} />
+          <Route path="/edit-profile" element={<EditProfile />} />
+          <Route path="/settings" element={<Settings />} />
+          <Route path="/about" element={<About />} />
+          <Route path="/help" element={<Help />} />
             <Route path="/notifications" element={<Notifications />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
