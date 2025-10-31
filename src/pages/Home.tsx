@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { Bell, CheckSquare, MapPin, User } from "lucide-react";
+import { Bell, CheckSquare, MapPin, Zap } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import BottomNav from "@/components/BottomNav";
 
@@ -11,6 +11,13 @@ const Home = () => {
   ];
 
   const quickActions = [
+    {
+      title: "Urgent Requirement",
+      description: "Get immediate service",
+      icon: Zap,
+      link: "/post-request",
+      gradient: "from-destructive to-warning",
+    },
     {
       title: "Remind Me",
       description: "Add a new reminder",
@@ -33,8 +40,8 @@ const Home = () => {
       <header className="bg-gradient-hero text-primary-foreground p-6 rounded-b-3xl shadow-elevated">
         <div className="flex justify-between items-start mb-8">
           <div>
-            <h1 className="text-2xl font-bold mb-1">Hey there! 👋</h1>
-            <p className="text-primary-foreground/80 text-sm">Ready to get things done?</p>
+            <h1 className="text-2xl font-bold mb-1">Welcome back!</h1>
+            <p className="text-primary-foreground/80 text-sm">Let's accomplish great things today</p>
           </div>
           <Link to="/notifications">
             <div className="relative p-2 bg-primary-foreground/20 rounded-full hover:bg-primary-foreground/30 transition-colors">
