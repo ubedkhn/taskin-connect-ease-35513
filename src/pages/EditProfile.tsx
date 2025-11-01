@@ -18,7 +18,6 @@ const EditProfile = () => {
     email: "",
     contact_no: "",
     profile_photo_url: "",
-    account_type: "user",
     aadhaar_number: "",
   });
 
@@ -44,7 +43,6 @@ const EditProfile = () => {
           email: data.email || "",
           contact_no: data.contact_no || "",
           profile_photo_url: data.profile_photo_url || "",
-          account_type: data.account_type || "user",
           aadhaar_number: data.aadhaar_number || "",
         });
       }
@@ -230,21 +228,19 @@ const EditProfile = () => {
               />
             </div>
 
-            {profile.account_type === "service_provider" && (
-              <div className="space-y-2">
-                <Label htmlFor="aadhaar">Aadhaar Card Number</Label>
-                <Input
-                  id="aadhaar"
-                  value={profile.aadhaar_number}
-                  onChange={(e) => setProfile({ ...profile, aadhaar_number: e.target.value })}
-                  placeholder="Enter your Aadhaar number"
-                  maxLength={12}
-                />
-                <p className="text-xs text-muted-foreground">
-                  Required for service provider verification
-                </p>
-              </div>
-            )}
+            <div className="space-y-2">
+              <Label htmlFor="aadhaar">Aadhaar Card Number (Optional)</Label>
+              <Input
+                id="aadhaar"
+                value={profile.aadhaar_number}
+                onChange={(e) => setProfile({ ...profile, aadhaar_number: e.target.value })}
+                placeholder="Enter your Aadhaar number"
+                maxLength={12}
+              />
+              <p className="text-xs text-muted-foreground">
+                For identity verification
+              </p>
+            </div>
           </CardContent>
         </Card>
 

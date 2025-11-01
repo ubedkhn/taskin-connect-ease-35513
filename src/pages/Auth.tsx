@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,34 +9,98 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Mail, Lock, Users, Wrench } from "lucide-react";
 import { toast } from "sonner";
 import taskinLogo from "@/assets/taskin_logo.jpg";
+import { supabase } from "@/integrations/supabase/client";
 
 const Auth = () => {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
-  const [accountType, setAccountType] = useState("customer");
+  const [accountType, setAccountType] = useState<"user" | "service_provider">("user");
 
-  const handleLogin = async (e: React.FormEvent) => {
+  useEffect(() => {
+    const checkSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        const { data: roleData } = await supabase
+          .from("user_roles")
+          .select("role")
+          .eq("user_id", session.user.id)
+          .single();
+
+        if (roleData?.role === "admin") navigate("/admin");
+        else if (roleData?.role === "service_provider") navigate("/service-provider");
+        else navigate("/home");
+      }
+    };
+    checkSession();
+  }, [navigate]);
+
+  const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsLoading(true);
     
-    // Simulate login
-    setTimeout(() => {
-      setIsLoading(false);
+    const formData = new FormData(e.currentTarget);
+    const email = formData.get("email") as string;
+    const password = formData.get("password") as string;
+
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+
+    setIsLoading(false);
+
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+
+    if (data.user) {
+      const { data: roleData } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", data.user.id)
+        .single();
+
       toast.success("Welcome back!");
-      navigate("/home");
-    }, 1500);
+
+      if (roleData?.role === "admin") navigate("/admin");
+      else if (roleData?.role === "service_provider") navigate("/service-provider");
+      else navigate("/home");
+    }
   };
 
-  const handleSignup = async (e: React.FormEvent) => {
+  const handleSignup = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsLoading(true);
     
-    // Simulate signup
-    setTimeout(() => {
-      setIsLoading(false);
+    const formData = new FormData(e.currentTarget);
+    const email = formData.get("email") as string;
+    const password = formData.get("password") as string;
+
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        emailRedirectTo: `${window.location.origin}/`,
+        data: {
+          role: accountType,
+        },
+      },
+    });
+
+    setIsLoading(false);
+
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+
+    if (data.user) {
       toast.success("Account created successfully!");
-      navigate("/home");
-    }, 1500);
+      
+      if (accountType === "service_provider") navigate("/service-provider");
+      else navigate("/home");
+    }
   };
 
   return (
@@ -66,12 +130,13 @@ const Auth = () => {
 
               <TabsContent value="login">
                 <form onSubmit={handleLogin} className="space-y-4">
-                  <div className="space-y-2">
+                   <div className="space-y-2">
                     <Label htmlFor="login-email">Email</Label>
                     <div className="relative">
                       <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                       <Input
                         id="login-email"
+                        name="email"
                         type="email"
                         placeholder="you@example.com"
                         className="pl-10"
@@ -85,6 +150,7 @@ const Auth = () => {
                       <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                       <Input
                         id="login-password"
+                        name="password"
                         type="password"
                         placeholder="••••••••"
                         className="pl-10"
@@ -107,21 +173,25 @@ const Auth = () => {
                 <form onSubmit={handleSignup} className="space-y-4">
                   <div className="space-y-3">
                     <Label className="text-base font-semibold">Create Account As</Label>
-                    <RadioGroup value={accountType} onValueChange={setAccountType} className="grid grid-cols-2 gap-3">
+                    <RadioGroup 
+                      value={accountType} 
+                      onValueChange={(value) => setAccountType(value as "user" | "service_provider")} 
+                      className="grid grid-cols-2 gap-3"
+                    >
                       <div className="relative">
-                        <RadioGroupItem value="customer" id="customer" className="peer sr-only" />
+                        <RadioGroupItem value="user" id="user" className="peer sr-only" />
                         <Label
-                          htmlFor="customer"
+                          htmlFor="user"
                           className="flex flex-col items-center justify-center rounded-lg border-2 border-muted bg-background p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary/5 cursor-pointer transition-all"
                         >
                           <Users className="h-6 w-6 mb-2" />
-                          <span className="text-sm font-medium">Customer</span>
+                          <span className="text-sm font-medium">User</span>
                         </Label>
                       </div>
                       <div className="relative">
-                        <RadioGroupItem value="provider" id="provider" className="peer sr-only" />
+                        <RadioGroupItem value="service_provider" id="service_provider" className="peer sr-only" />
                         <Label
-                          htmlFor="provider"
+                          htmlFor="service_provider"
                           className="flex flex-col items-center justify-center rounded-lg border-2 border-muted bg-background p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary/5 cursor-pointer transition-all"
                         >
                           <Wrench className="h-6 w-6 mb-2" />
@@ -136,6 +206,7 @@ const Auth = () => {
                       <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                       <Input
                         id="signup-email"
+                        name="email"
                         type="email"
                         placeholder="you@example.com"
                         className="pl-10"
@@ -149,9 +220,11 @@ const Auth = () => {
                       <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                       <Input
                         id="signup-password"
+                        name="password"
                         type="password"
                         placeholder="••••••••"
                         className="pl-10"
+                        minLength={6}
                         required
                       />
                     </div>

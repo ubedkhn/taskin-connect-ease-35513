@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { ArrowLeft, Moon, Sun, Monitor, Users, Wrench, HelpCircle, Info, LogOut, Trash2 } from "lucide-react";
+import { ArrowLeft, Moon, Sun, Monitor, HelpCircle, Info, LogOut, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ChangePasswordDialog } from "@/components/ChangePasswordDialog";
 import { Card, CardContent } from "@/components/ui/card";
@@ -8,6 +8,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -22,25 +23,24 @@ import {
 
 const Settings = () => {
   const navigate = useNavigate();
-  const [accountType, setAccountType] = useState<"user" | "provider">("user");
   const [theme, setTheme] = useState<"light" | "dark" | "system">("system");
-
-  const handleAccountSwitch = (value: string) => {
-    setAccountType(value as "user" | "provider");
-    toast.success(`Switched to ${value === "user" ? "User" : "Service Provider"} account`);
-  };
 
   const handleThemeChange = (value: string) => {
     setTheme(value as "light" | "dark" | "system");
     toast.success(`Theme changed to ${value}`);
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
     toast.success("Logged out successfully");
     navigate("/auth");
   };
 
-  const handleDeleteAccount = () => {
+  const handleDeleteAccount = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      await supabase.auth.admin.deleteUser(user.id);
+    }
     toast.success("Account deletion initiated");
     navigate("/auth");
   };
@@ -65,40 +65,6 @@ const Settings = () => {
 
       {/* Settings Content */}
       <main className="p-6 space-y-6">
-        {/* Account Type */}
-        <Card>
-          <CardContent className="p-6 space-y-4">
-            <div>
-              <h2 className="text-lg font-semibold mb-1">Account Type</h2>
-              <p className="text-sm text-muted-foreground">
-                Switch between User and Service Provider
-              </p>
-            </div>
-            <RadioGroup value={accountType} onValueChange={handleAccountSwitch}>
-              <div className="flex items-center space-x-3 p-4 rounded-lg border-2 hover:bg-accent transition-colors">
-                <RadioGroupItem value="user" id="user" />
-                <Label htmlFor="user" className="flex items-center gap-3 cursor-pointer flex-1">
-                  <Users className="w-5 h-5 text-primary" />
-                  <div>
-                    <p className="font-medium">User Account</p>
-                    <p className="text-xs text-muted-foreground">Find and request services</p>
-                  </div>
-                </Label>
-              </div>
-              <div className="flex items-center space-x-3 p-4 rounded-lg border-2 hover:bg-accent transition-colors">
-                <RadioGroupItem value="provider" id="provider" />
-                <Label htmlFor="provider" className="flex items-center gap-3 cursor-pointer flex-1">
-                  <Wrench className="w-5 h-5 text-primary" />
-                  <div>
-                    <p className="font-medium">Service Provider</p>
-                    <p className="text-xs text-muted-foreground">Offer your services to users</p>
-                  </div>
-                </Label>
-              </div>
-            </RadioGroup>
-          </CardContent>
-        </Card>
-
         {/* Theme */}
         <Card>
           <CardContent className="p-6 space-y-4">

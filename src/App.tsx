@@ -17,6 +17,9 @@ import About from "./pages/About";
 import Help from "./pages/Help";
 import Notifications from "./pages/Notifications";
 import NotFound from "./pages/NotFound";
+import AdminPanel from "./pages/AdminPanel";
+import ServiceProviderPanel from "./pages/ServiceProviderPanel";
+import AuthGuard from "./components/AuthGuard";
 
 const queryClient = new QueryClient();
 
@@ -30,17 +33,80 @@ const App = () => (
           <Routes>
             <Route path="/" element={<Splash />} />
             <Route path="/auth" element={<Auth />} />
-            <Route path="/home" element={<Home />} />
-            <Route path="/remind-me" element={<RemindMe />} />
-            <Route path="/add-task" element={<AddTask />} />
-            <Route path="/nearby-help" element={<NearbyHelp />} />
-            <Route path="/post-request" element={<PostRequest />} />
-          <Route path="/profile" element={<Profile />} />
-          <Route path="/edit-profile" element={<EditProfile />} />
-          <Route path="/settings" element={<Settings />} />
-          <Route path="/about" element={<About />} />
-          <Route path="/help" element={<Help />} />
-            <Route path="/notifications" element={<Notifications />} />
+            
+            {/* Admin Panel */}
+            <Route path="/admin" element={
+              <AuthGuard allowedRoles={["admin"]}>
+                <AdminPanel />
+              </AuthGuard>
+            } />
+            
+            {/* Service Provider Panel */}
+            <Route path="/service-provider" element={
+              <AuthGuard allowedRoles={["service_provider"]}>
+                <ServiceProviderPanel />
+              </AuthGuard>
+            } />
+            
+            {/* User Panel (default home) */}
+            <Route path="/home" element={
+              <AuthGuard allowedRoles={["user"]}>
+                <Home />
+              </AuthGuard>
+            } />
+            <Route path="/remind-me" element={
+              <AuthGuard allowedRoles={["user"]}>
+                <RemindMe />
+              </AuthGuard>
+            } />
+            <Route path="/add-task" element={
+              <AuthGuard allowedRoles={["user"]}>
+                <AddTask />
+              </AuthGuard>
+            } />
+            <Route path="/nearby-help" element={
+              <AuthGuard allowedRoles={["user"]}>
+                <NearbyHelp />
+              </AuthGuard>
+            } />
+            <Route path="/post-request" element={
+              <AuthGuard allowedRoles={["user"]}>
+                <PostRequest />
+              </AuthGuard>
+            } />
+            
+            {/* Shared Routes (all authenticated users) */}
+            <Route path="/profile" element={
+              <AuthGuard>
+                <Profile />
+              </AuthGuard>
+            } />
+            <Route path="/edit-profile" element={
+              <AuthGuard>
+                <EditProfile />
+              </AuthGuard>
+            } />
+            <Route path="/settings" element={
+              <AuthGuard>
+                <Settings />
+              </AuthGuard>
+            } />
+            <Route path="/about" element={
+              <AuthGuard>
+                <About />
+              </AuthGuard>
+            } />
+            <Route path="/help" element={
+              <AuthGuard>
+                <Help />
+              </AuthGuard>
+            } />
+            <Route path="/notifications" element={
+              <AuthGuard>
+                <Notifications />
+              </AuthGuard>
+            } />
+            
             <Route path="*" element={<NotFound />} />
           </Routes>
         </div>
