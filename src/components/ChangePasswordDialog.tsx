@@ -14,6 +14,16 @@ import { Label } from "@/components/ui/label";
 import { Lock, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { z } from "zod";
+
+const passwordSchema = z.object({
+  current: z.string().min(6, "Current password must be at least 6 characters"),
+  new: z.string().min(6, "New password must be at least 6 characters"),
+  confirm: z.string().min(6, "Password must be at least 6 characters"),
+}).refine((data) => data.new === data.confirm, {
+  message: "Passwords don't match",
+  path: ["confirm"],
+});
 
 export const ChangePasswordDialog = () => {
   const [open, setOpen] = useState(false);
@@ -25,20 +35,33 @@ export const ChangePasswordDialog = () => {
   });
 
   const handleChangePassword = async () => {
-    if (passwords.new !== passwords.confirm) {
-      toast.error("New passwords do not match");
-      return;
-    }
-
-    if (passwords.new.length < 6) {
-      toast.error("Password must be at least 6 characters");
-      return;
-    }
-
     try {
+      // Validate input
+      const validation = passwordSchema.parse(passwords);
+      
       setLoading(true);
+
+      // Verify current password by attempting to sign in
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user?.email) {
+        toast.error("User not found");
+        return;
+      }
+
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: user.email,
+        password: validation.current,
+      });
+
+      if (signInError) {
+        toast.error("Current password is incorrect");
+        setLoading(false);
+        return;
+      }
+
+      // Update password
       const { error } = await supabase.auth.updateUser({
-        password: passwords.new,
+        password: validation.new,
       });
 
       if (error) throw error;
@@ -47,7 +70,11 @@ export const ChangePasswordDialog = () => {
       setOpen(false);
       setPasswords({ current: "", new: "", confirm: "" });
     } catch (error: any) {
-      toast.error(error.message || "Failed to change password");
+      if (error instanceof z.ZodError) {
+        toast.error(error.errors[0].message);
+      } else {
+        toast.error(error.message || "Failed to change password");
+      }
     } finally {
       setLoading(false);
     }
@@ -74,6 +101,16 @@ export const ChangePasswordDialog = () => {
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4 py-4">
+          <div className="space-y-2">
+            <Label htmlFor="current-password">Current Password</Label>
+            <Input
+              id="current-password"
+              type="password"
+              value={passwords.current}
+              onChange={(e) => setPasswords({ ...passwords, current: e.target.value })}
+              placeholder="Enter current password"
+            />
+          </div>
           <div className="space-y-2">
             <Label htmlFor="new-password">New Password</Label>
             <Input

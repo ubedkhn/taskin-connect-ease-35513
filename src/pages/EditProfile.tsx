@@ -8,6 +8,19 @@ import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { z } from "zod";
+
+const profileSchema = z.object({
+  full_name: z.string().trim().min(2, "Name must be at least 2 characters").max(100, "Name too long"),
+  contact_no: z.string()
+    .regex(/^[0-9]{10}$/, "Contact number must be exactly 10 digits")
+    .optional()
+    .or(z.literal("")),
+  aadhaar_number: z.string()
+    .regex(/^[0-9]{12}$/, "Aadhaar must be exactly 12 digits")
+    .optional()
+    .or(z.literal("")),
+});
 
 const EditProfile = () => {
   const navigate = useNavigate();
@@ -85,16 +98,24 @@ const EditProfile = () => {
   const handleSave = async () => {
     try {
       setLoading(true);
+
+      // Validate input
+      const validation = profileSchema.parse({
+        full_name: profile.full_name,
+        contact_no: profile.contact_no,
+        aadhaar_number: profile.aadhaar_number,
+      });
+
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
 
       const { error } = await supabase
         .from("profiles")
         .update({
-          full_name: profile.full_name,
-          contact_no: profile.contact_no,
+          full_name: validation.full_name,
+          contact_no: validation.contact_no || null,
           profile_photo_url: profile.profile_photo_url,
-          aadhaar_number: profile.aadhaar_number,
+          aadhaar_number: validation.aadhaar_number || null,
         })
         .eq("user_id", user.id);
 
@@ -103,7 +124,11 @@ const EditProfile = () => {
       toast.success("Profile updated successfully");
       navigate("/profile");
     } catch (error: any) {
-      toast.error("Failed to update profile");
+      if (error instanceof z.ZodError) {
+        toast.error(error.errors[0].message);
+      } else {
+        toast.error("Failed to update profile");
+      }
     } finally {
       setLoading(false);
     }

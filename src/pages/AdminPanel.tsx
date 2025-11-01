@@ -4,6 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Users, Shield, Settings, BarChart3, ArrowLeft } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { AdminUserManagement } from "@/components/AdminUserManagement";
+import { useState, useEffect } from "react";
 
 const AdminPanel = () => {
   const navigate = useNavigate();
@@ -18,11 +20,36 @@ const AdminPanel = () => {
     navigate("/auth");
   };
 
+const [stats, setStats] = useState({
+    totalUsers: 0,
+    serviceProviders: 0,
+    regularUsers: 0,
+  });
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      const { data: roles } = await supabase
+        .from("user_roles")
+        .select("role");
+
+      if (roles) {
+        const serviceProviders = roles.filter(r => r.role === "service_provider").length;
+        const users = roles.filter(r => r.role === "user").length;
+        setStats({
+          totalUsers: roles.length,
+          serviceProviders,
+          regularUsers: users,
+        });
+      }
+    };
+    fetchStats();
+  }, []);
+
   const adminStats = [
-    { label: "Total Users", value: "1,234", icon: Users, color: "text-blue-500" },
-    { label: "Service Providers", value: "456", icon: Shield, color: "text-green-500" },
-    { label: "Active Requests", value: "89", icon: BarChart3, color: "text-orange-500" },
-    { label: "System Status", value: "Healthy", icon: Settings, color: "text-purple-500" },
+    { label: "Total Users", value: stats.totalUsers.toString(), icon: Users, color: "text-blue-500" },
+    { label: "Service Providers", value: stats.serviceProviders.toString(), icon: Shield, color: "text-green-500" },
+    { label: "Regular Users", value: stats.regularUsers.toString(), icon: BarChart3, color: "text-orange-500" },
+    { label: "System Status", value: "Active", icon: Settings, color: "text-purple-500" },
   ];
 
   return (
@@ -90,32 +117,8 @@ const AdminPanel = () => {
           </CardContent>
         </Card>
 
-        {/* Recent Activity */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Recent System Activity</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {[
-                { action: "New user registered", time: "5 minutes ago", type: "user" },
-                { action: "Service provider verified", time: "12 minutes ago", type: "provider" },
-                { action: "Request completed", time: "1 hour ago", type: "request" },
-                { action: "System backup completed", time: "3 hours ago", type: "system" },
-              ].map((activity, index) => (
-                <div key={index} className="flex items-center justify-between py-2 border-b last:border-0">
-                  <div>
-                    <p className="font-medium">{activity.action}</p>
-                    <p className="text-sm text-muted-foreground">{activity.time}</p>
-                  </div>
-                  <span className="text-xs px-2 py-1 bg-primary/10 text-primary rounded-full">
-                    {activity.type}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+        {/* User Management */}
+        <AdminUserManagement />
       </div>
     </div>
   );
