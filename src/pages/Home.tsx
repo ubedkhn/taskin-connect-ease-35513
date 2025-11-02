@@ -35,9 +35,16 @@ const Home = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-background pb-20">
+    <div className="min-h-screen bg-background pb-20 relative overflow-hidden">
+      {/* Animated Background */}
+      <div className="fixed inset-0 -z-10 overflow-hidden">
+        <div className="absolute top-0 -left-4 w-72 h-72 bg-primary/10 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob"></div>
+        <div className="absolute top-0 -right-4 w-72 h-72 bg-accent/20 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob animation-delay-2000"></div>
+        <div className="absolute -bottom-8 left-20 w-72 h-72 bg-primary-light/20 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob animation-delay-4000"></div>
+      </div>
+
       {/* Header */}
-      <header className="bg-gradient-hero text-primary-foreground p-6 rounded-b-3xl shadow-elevated">
+      <header className="bg-gradient-hero text-primary-foreground p-6 rounded-b-3xl shadow-elevated relative">
         <div className="flex justify-between items-start mb-8">
           <div>
             <h1 className="text-2xl font-bold mb-1">Welcome back!</h1>

@@ -1,6 +1,6 @@
-import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { ArrowLeft, Moon, Sun, Monitor, HelpCircle, Info, LogOut, Trash2 } from "lucide-react";
+import { useTheme } from "next-themes";
 import { Button } from "@/components/ui/button";
 import { ChangePasswordDialog } from "@/components/ChangePasswordDialog";
 import { Card, CardContent } from "@/components/ui/card";
@@ -23,10 +23,10 @@ import {
 
 const Settings = () => {
   const navigate = useNavigate();
-  const [theme, setTheme] = useState<"light" | "dark" | "system">("system");
+  const { theme, setTheme } = useTheme();
 
   const handleThemeChange = (value: string) => {
-    setTheme(value as "light" | "dark" | "system");
+    setTheme(value);
     toast.success(`Theme changed to ${value}`);
   };
 
@@ -94,7 +94,7 @@ const Settings = () => {
                 Choose your preferred appearance
               </p>
             </div>
-            <RadioGroup value={theme} onValueChange={handleThemeChange}>
+            <RadioGroup value={theme || "system"} onValueChange={handleThemeChange}>
               <div className="flex items-center space-x-3 p-4 rounded-lg border-2 hover:bg-accent transition-colors">
                 <RadioGroupItem value="light" id="light" />
                 <Label htmlFor="light" className="flex items-center gap-3 cursor-pointer flex-1">
