@@ -37,12 +37,32 @@ const Settings = () => {
   };
 
   const handleDeleteAccount = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (user) {
-      await supabase.auth.admin.deleteUser(user.id);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      // Delete profile data (CASCADE will handle related data)
+      const { error: profileError } = await supabase
+        .from("profiles")
+        .delete()
+        .eq("user_id", user.id);
+
+      if (profileError) throw profileError;
+
+      // Delete auth user
+      const { error: authError } = await supabase.auth.updateUser({
+        data: { deleted: true }
+      });
+
+      if (authError) throw authError;
+
+      // Sign out
+      await supabase.auth.signOut();
+      toast.success("Account deleted successfully");
+      navigate("/auth");
+    } catch (error: any) {
+      toast.error("Failed to delete account");
     }
-    toast.success("Account deletion initiated");
-    navigate("/auth");
   };
 
   return (

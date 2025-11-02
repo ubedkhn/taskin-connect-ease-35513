@@ -16,6 +16,7 @@ interface ServiceProvider {
   distance: string;
   available: boolean;
   requests: number;
+  phone: string;
 }
 
 const NearbyHelp = () => {
@@ -28,6 +29,7 @@ const NearbyHelp = () => {
       distance: "0.5 km",
       available: true,
       requests: 120,
+      phone: "+919876543210",
     },
     {
       id: 2,
@@ -37,6 +39,7 @@ const NearbyHelp = () => {
       distance: "1.2 km",
       available: true,
       requests: 98,
+      phone: "+919876543211",
     },
     {
       id: 3,
@@ -46,6 +49,7 @@ const NearbyHelp = () => {
       distance: "0.8 km",
       available: false,
       requests: 150,
+      phone: "+919876543212",
     },
     {
       id: 4,
@@ -55,8 +59,13 @@ const NearbyHelp = () => {
       distance: "2.0 km",
       available: true,
       requests: 85,
+      phone: "+919876543213",
     },
   ]);
+
+  const handleCall = (phone: string) => {
+    window.location.href = `tel:${phone}`;
+  };
 
   return (
     <div className="min-h-screen bg-background pb-20">
@@ -149,11 +158,20 @@ const NearbyHelp = () => {
 
                 {/* Actions */}
                 <div className="grid grid-cols-2 gap-2 mt-4">
-                  <Button variant="outline" size="sm">
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => handleCall(provider.phone)}
+                    className="w-full"
+                  >
                     <Phone className="w-4 h-4 mr-2" />
                     Call
                   </Button>
-                  <Button variant="default" size="sm">
+                  <Button 
+                    variant="default" 
+                    size="sm"
+                    className="w-full"
+                  >
                     Request Service
                   </Button>
                 </div>

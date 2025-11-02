@@ -18,6 +18,7 @@ export type Database = {
         Row: {
           aadhaar_number: string | null
           aadhaar_verified: boolean | null
+          bio: string | null
           contact_no: string | null
           created_at: string
           email: string | null
@@ -30,6 +31,7 @@ export type Database = {
         Insert: {
           aadhaar_number?: string | null
           aadhaar_verified?: boolean | null
+          bio?: string | null
           contact_no?: string | null
           created_at?: string
           email?: string | null
@@ -42,6 +44,7 @@ export type Database = {
         Update: {
           aadhaar_number?: string | null
           aadhaar_verified?: boolean | null
+          bio?: string | null
           contact_no?: string | null
           created_at?: string
           email?: string | null

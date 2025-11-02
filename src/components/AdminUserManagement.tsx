@@ -47,7 +47,9 @@ export function AdminUserManagement() {
 
       setUsers(usersWithRoles);
     } catch (error) {
-      console.error("Error fetching users:", error);
+      if (import.meta.env.DEV) {
+        console.error("Error fetching users:", error);
+      }
       toast.error("Failed to load users");
     } finally {
       setLoading(false);

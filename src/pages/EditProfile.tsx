@@ -6,6 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { z } from "zod";
@@ -32,6 +33,7 @@ const EditProfile = () => {
     contact_no: "",
     profile_photo_url: "",
     aadhaar_number: "",
+    bio: "",
   });
 
   useEffect(() => {
@@ -57,6 +59,7 @@ const EditProfile = () => {
           contact_no: data.contact_no || "",
           profile_photo_url: data.profile_photo_url || "",
           aadhaar_number: data.aadhaar_number || "",
+          bio: data.bio || "",
         });
       }
     } catch (error: any) {
@@ -116,6 +119,7 @@ const EditProfile = () => {
           contact_no: validation.contact_no || null,
           profile_photo_url: profile.profile_photo_url,
           aadhaar_number: validation.aadhaar_number || null,
+          bio: profile.bio || null,
         })
         .eq("user_id", user.id);
 
@@ -264,6 +268,21 @@ const EditProfile = () => {
               />
               <p className="text-xs text-muted-foreground">
                 For identity verification
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="bio">Bio / Services (Optional)</Label>
+              <Textarea
+                id="bio"
+                value={profile.bio}
+                onChange={(e) => setProfile({ ...profile, bio: e.target.value })}
+                placeholder="Describe your services or add relevant tags (e.g., Plumber, 24/7 Service, Emergency Repairs)"
+                rows={4}
+                maxLength={500}
+              />
+              <p className="text-xs text-muted-foreground">
+                Add tags or describe the services you provide
               </p>
             </div>
           </CardContent>
