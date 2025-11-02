@@ -42,11 +42,13 @@ const AuthGuard = ({ children, allowedRoles }: AuthGuardProps) => {
 
   useEffect(() => {
     if (!loading && !roleLoading && isAuthenticated && allowedRoles) {
-      if (!role || !allowedRoles.includes(role)) {
+      // Only redirect if user explicitly doesn't have the required role
+      // Allow access if role is null (still loading) or matches
+      if (role && !allowedRoles.includes(role)) {
         // Redirect to appropriate home based on role
         if (role === "admin") navigate("/admin");
         else if (role === "service_provider") navigate("/service-provider");
-        else navigate("/home");
+        else if (role === "user") navigate("/home");
       }
     }
   }, [loading, roleLoading, isAuthenticated, role, allowedRoles, navigate]);

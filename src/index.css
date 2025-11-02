@@ -51,6 +51,49 @@ All colors MUST be HSL.
     --shadow-card: 0 2px 8px hsl(220 13% 13% / 0.08);
     --shadow-elevated: 0 8px 24px hsl(220 13% 13% / 0.12);
   }
+
+  .dark {
+    --background: 222 47% 11%;
+    --foreground: 210 40% 98%;
+
+    --card: 222 47% 15%;
+    --card-foreground: 210 40% 98%;
+
+    --popover: 222 47% 15%;
+    --popover-foreground: 210 40% 98%;
+
+    --primary: 212 100% 50%;
+    --primary-foreground: 0 0% 100%;
+    --primary-light: 212 100% 85%;
+    --primary-dark: 212 100% 40%;
+
+    --secondary: 217 33% 17%;
+    --secondary-foreground: 210 40% 98%;
+
+    --muted: 217 33% 17%;
+    --muted-foreground: 215 20% 65%;
+
+    --accent: 217 33% 17%;
+    --accent-foreground: 210 40% 98%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    --success: 142 76% 36%;
+    --success-foreground: 0 0% 100%;
+
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 100%;
+
+    --border: 217 33% 17%;
+    --input: 217 33% 17%;
+    --ring: 212 100% 50%;
+
+    --gradient-primary: linear-gradient(135deg, hsl(212 100% 50%) 0%, hsl(212 100% 65%) 100%);
+    --gradient-hero: linear-gradient(180deg, hsl(212 100% 50%) 0%, hsl(212 100% 40%) 100%);
+    --shadow-card: 0 2px 8px hsl(0 0% 0% / 0.3);
+    --shadow-elevated: 0 8px 24px hsl(0 0% 0% / 0.5);
+  }
 }
 
 @layer base {
@@ -61,14 +104,5 @@ All colors MUST be HSL.
   body {
     @apply bg-background text-foreground font-sans;
     font-family: 'Inter', system-ui, -apple-system, sans-serif;
-  }
-}
-
-@layer utilities {
-  .animation-delay-2000 {
-    animation-delay: 2s;
-  }
-  .animation-delay-4000 {
-    animation-delay: 4s;
   }
 }
