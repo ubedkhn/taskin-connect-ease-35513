@@ -1,6 +1,7 @@
+import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { ArrowLeft, Moon, Sun, Monitor, HelpCircle, Info, LogOut, Trash2 } from "lucide-react";
-import { useTheme } from "next-themes";
+import { useTheme } from "@/contexts/ThemeContext";
 import { Button } from "@/components/ui/button";
 import { ChangePasswordDialog } from "@/components/ChangePasswordDialog";
 import { Card, CardContent } from "@/components/ui/card";
@@ -26,7 +27,7 @@ const Settings = () => {
   const { theme, setTheme } = useTheme();
 
   const handleThemeChange = (value: string) => {
-    setTheme(value);
+    setTheme(value as 'light' | 'dark' | 'system');
     toast.success(`Theme changed to ${value}`);
   };
 
