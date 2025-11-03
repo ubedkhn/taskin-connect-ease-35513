@@ -20,6 +20,7 @@ import Notifications from "./pages/Notifications";
 import NotFound from "./pages/NotFound";
 import AdminPanel from "./pages/AdminPanel";
 import ServiceProviderPanel from "./pages/ServiceProviderPanel";
+import TrackProvider from "./pages/TrackProvider";
 import AuthGuard from "./components/AuthGuard";
 
 const queryClient = new QueryClient();
@@ -47,6 +48,13 @@ const App = () => (
             <Route path="/service-provider" element={
               <AuthGuard allowedRoles={["service_provider"]}>
                 <ServiceProviderPanel />
+              </AuthGuard>
+            } />
+            
+            {/* Track Provider */}
+            <Route path="/track-provider/:requestId" element={
+              <AuthGuard allowedRoles={["user"]}>
+                <TrackProvider />
               </AuthGuard>
             } />
             

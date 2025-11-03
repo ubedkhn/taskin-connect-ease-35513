@@ -1,43 +1,175 @@
+import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Bell, Phone, MessageSquare, Star, CheckCircle, Clock } from "lucide-react";
+import { Bell, Phone, MessageSquare, Star, CheckCircle, Clock, Navigation } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+
+interface ServiceRequest {
+  id: string;
+  user_id: string;
+  service_type: string;
+  user_location_lat: number;
+  user_location_lng: number;
+  user_address: string | null;
+  status: string;
+  description: string | null;
+  created_at: string;
+}
 
 const ServiceProviderPanel = () => {
+  const { toast } = useToast();
+  const [requests, setRequests] = useState<ServiceRequest[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [isTracking, setIsTracking] = useState(false);
+  const [currentRequestId, setCurrentRequestId] = useState<string | null>(null);
+
   const stats = [
-    { label: "Pending Requests", value: "12", icon: Clock, color: "text-orange-500" },
-    { label: "Completed Today", value: "8", icon: CheckCircle, color: "text-green-500" },
+    { label: "Pending Requests", value: requests.length.toString(), icon: Clock, color: "text-orange-500" },
+    { label: "Completed Today", value: "0", icon: CheckCircle, color: "text-green-500" },
     { label: "Rating", value: "4.8", icon: Star, color: "text-yellow-500" },
-    { label: "Total Earnings", value: "₹2,450", icon: CheckCircle, color: "text-blue-500" },
+    { label: "Total Earnings", value: "₹0", icon: CheckCircle, color: "text-blue-500" },
   ];
 
-  const incomingRequests = [
-    {
-      id: 1,
-      customerName: "Rajesh Kumar",
-      service: "Plumbing",
-      location: "Sector 15, 2.3 km away",
-      time: "10 mins ago",
-      urgent: true,
-    },
-    {
-      id: 2,
-      customerName: "Priya Sharma",
-      service: "Electrical Work",
-      location: "Sector 22, 3.5 km away",
-      time: "25 mins ago",
-      urgent: false,
-    },
-    {
-      id: 3,
-      customerName: "Amit Patel",
-      service: "AC Repair",
-      location: "Sector 18, 1.8 km away",
-      time: "1 hour ago",
-      urgent: true,
-    },
-  ];
+  useEffect(() => {
+    fetchRequests();
+
+    const channel = supabase
+      .channel("service-requests")
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "service_requests",
+        },
+        () => {
+          fetchRequests();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
+
+  const fetchRequests = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    const { data, error } = await supabase
+      .from("service_requests")
+      .select("*")
+      .or(`status.eq.pending,and(service_provider_id.eq.${user.id},status.eq.accepted)`)
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      console.error("Error fetching requests:", error);
+    } else {
+      setRequests(data || []);
+    }
+    setLoading(false);
+  };
+
+  const handleAcceptRequest = async (requestId: string) => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    const { error } = await supabase
+      .from("service_requests")
+      .update({ 
+        service_provider_id: user.id, 
+        status: "accepted",
+        accepted_at: new Date().toISOString()
+      })
+      .eq("id", requestId);
+
+    if (error) {
+      toast({
+        title: "Error",
+        description: "Failed to accept request",
+        variant: "destructive",
+      });
+    } else {
+      toast({
+        title: "Success",
+        description: "Request accepted! Start tracking to share your location.",
+      });
+      setCurrentRequestId(requestId);
+      fetchRequests();
+    }
+  };
+
+  const startLocationTracking = async (requestId: string) => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    if (!navigator.geolocation) {
+      toast({
+        title: "Error",
+        description: "Geolocation is not supported by your browser",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsTracking(true);
+    setCurrentRequestId(requestId);
+
+    const watchId = navigator.geolocation.watchPosition(
+      async (position) => {
+        const { latitude, longitude } = position.coords;
+        
+        const { error } = await supabase
+          .from("provider_locations")
+          .upsert({
+            service_provider_id: user.id,
+            request_id: requestId,
+            latitude,
+            longitude,
+            updated_at: new Date().toISOString(),
+          });
+
+        if (error) {
+          console.error("Error updating location:", error);
+        }
+      },
+      (error) => {
+        console.error("Geolocation error:", error);
+        toast({
+          title: "Location Error",
+          description: "Unable to get your location. Please check permissions.",
+          variant: "destructive",
+        });
+      },
+      {
+        enableHighAccuracy: true,
+        maximumAge: 10000,
+        timeout: 5000,
+      }
+    );
+
+    toast({
+      title: "Tracking Started",
+      description: "Your location is being shared with the customer",
+    });
+
+    return () => {
+      navigator.geolocation.clearWatch(watchId);
+      setIsTracking(false);
+    };
+  };
+
+  const getTimeSince = (timestamp: string) => {
+    const diff = Date.now() - new Date(timestamp).getTime();
+    const minutes = Math.floor(diff / 60000);
+    if (minutes < 60) return `${minutes} mins ago`;
+    const hours = Math.floor(minutes / 60);
+    return `${hours} hour${hours > 1 ? 's' : ''} ago`;
+  };
 
   return (
     <div className="min-h-screen bg-background pb-20">
@@ -76,47 +208,64 @@ const ServiceProviderPanel = () => {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center justify-between">
-              <span>Incoming Requests</span>
-              <Badge variant="secondary">{incomingRequests.length}</Badge>
+              <span>Service Requests</span>
+              <Badge variant="secondary">{requests.length}</Badge>
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            {incomingRequests.map((request) => (
-              <div
-                key={request.id}
-                className="p-4 border rounded-lg space-y-3 hover:shadow-md transition-shadow"
-              >
-                <div className="flex items-start justify-between">
-                  <div>
-                    <h3 className="font-semibold">{request.customerName}</h3>
-                    <p className="text-sm text-muted-foreground">{request.service}</p>
-                  </div>
-                  {request.urgent && (
-                    <Badge variant="destructive" className="text-xs">
-                      Urgent
+            {loading ? (
+              <p className="text-center text-muted-foreground">Loading...</p>
+            ) : requests.length === 0 ? (
+              <p className="text-center text-muted-foreground">No requests available</p>
+            ) : (
+              requests.map((request) => (
+                <div
+                  key={request.id}
+                  className="p-4 border rounded-lg space-y-3 hover:shadow-md transition-shadow"
+                >
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <h3 className="font-semibold">{request.service_type}</h3>
+                      <p className="text-sm text-muted-foreground">
+                        {request.description || "No description"}
+                      </p>
+                    </div>
+                    <Badge variant={request.status === "pending" ? "secondary" : "default"}>
+                      {request.status}
                     </Badge>
-                  )}
-                </div>
-                
-                <div className="text-sm text-muted-foreground">
-                  <p>📍 {request.location}</p>
-                  <p>🕐 {request.time}</p>
-                </div>
+                  </div>
+                  
+                  <div className="text-sm text-muted-foreground">
+                    {request.user_address && <p>📍 {request.user_address}</p>}
+                    <p>🕐 {getTimeSince(request.created_at)}</p>
+                  </div>
 
-                <div className="flex gap-2">
-                  <Button size="sm" className="flex-1">
-                    <CheckCircle className="w-4 h-4 mr-2" />
-                    Accept
-                  </Button>
-                  <Button size="sm" variant="outline">
-                    <Phone className="w-4 h-4" />
-                  </Button>
-                  <Button size="sm" variant="outline">
-                    <MessageSquare className="w-4 h-4" />
-                  </Button>
+                  <div className="flex gap-2">
+                    {request.status === "pending" ? (
+                      <Button 
+                        size="sm" 
+                        className="flex-1"
+                        onClick={() => handleAcceptRequest(request.id)}
+                      >
+                        <CheckCircle className="w-4 h-4 mr-2" />
+                        Accept Request
+                      </Button>
+                    ) : request.status === "accepted" ? (
+                      <Button 
+                        size="sm" 
+                        className="flex-1"
+                        variant={isTracking && currentRequestId === request.id ? "secondary" : "default"}
+                        onClick={() => startLocationTracking(request.id)}
+                        disabled={isTracking && currentRequestId === request.id}
+                      >
+                        <Navigation className="w-4 h-4 mr-2" />
+                        {isTracking && currentRequestId === request.id ? "Tracking Active" : "Start Tracking"}
+                      </Button>
+                    ) : null}
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))
+            )}
           </CardContent>
         </Card>
 

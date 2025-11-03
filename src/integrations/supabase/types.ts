@@ -56,6 +56,86 @@ export type Database = {
         }
         Relationships: []
       }
+      provider_locations: {
+        Row: {
+          id: string
+          latitude: number
+          longitude: number
+          request_id: string | null
+          service_provider_id: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          latitude: number
+          longitude: number
+          request_id?: string | null
+          service_provider_id: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          latitude?: number
+          longitude?: number
+          request_id?: string | null
+          service_provider_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "provider_locations_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "service_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      service_requests: {
+        Row: {
+          accepted_at: string | null
+          completed_at: string | null
+          created_at: string
+          description: string | null
+          id: string
+          service_provider_id: string | null
+          service_type: string
+          status: string
+          user_address: string | null
+          user_id: string
+          user_location_lat: number
+          user_location_lng: number
+        }
+        Insert: {
+          accepted_at?: string | null
+          completed_at?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          service_provider_id?: string | null
+          service_type: string
+          status?: string
+          user_address?: string | null
+          user_id: string
+          user_location_lat: number
+          user_location_lng: number
+        }
+        Update: {
+          accepted_at?: string | null
+          completed_at?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          service_provider_id?: string | null
+          service_type?: string
+          status?: string
+          user_address?: string | null
+          user_id?: string
+          user_location_lat?: number
+          user_location_lng?: number
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string

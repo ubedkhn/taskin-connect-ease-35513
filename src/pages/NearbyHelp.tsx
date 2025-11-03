@@ -1,12 +1,17 @@
-import { useState } from "react";
-import { Link } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { Search, Plus, MapPin, Star, Phone } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import BottomNav from "@/components/BottomNav";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 interface ServiceProvider {
   id: number;
@@ -20,6 +25,8 @@ interface ServiceProvider {
 }
 
 const NearbyHelp = () => {
+  const navigate = useNavigate();
+  const { toast } = useToast();
   const [providers] = useState<ServiceProvider[]>([
     {
       id: 1,
@@ -62,9 +69,107 @@ const NearbyHelp = () => {
       phone: "+919876543213",
     },
   ]);
+  
+  const [selectedProvider, setSelectedProvider] = useState<ServiceProvider | null>(null);
+  const [showRequestDialog, setShowRequestDialog] = useState(false);
+  const [description, setDescription] = useState("");
+  const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const [locationAddress, setLocationAddress] = useState("");
+  const [loadingLocation, setLoadingLocation] = useState(false);
+
+  useEffect(() => {
+    getUserLocation();
+  }, []);
+
+  const getUserLocation = () => {
+    if (!navigator.geolocation) {
+      toast({
+        title: "Error",
+        description: "Geolocation is not supported by your browser",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setLoadingLocation(true);
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const { latitude, longitude } = position.coords;
+        setUserLocation({ lat: latitude, lng: longitude });
+        setLocationAddress(`${latitude.toFixed(6)}, ${longitude.toFixed(6)}`);
+        setLoadingLocation(false);
+      },
+      (error) => {
+        console.error("Error getting location:", error);
+        toast({
+          title: "Location Error",
+          description: "Unable to get your location. Please check permissions.",
+          variant: "destructive",
+        });
+        setLoadingLocation(false);
+      }
+    );
+  };
 
   const handleCall = (phone: string) => {
     window.location.href = `tel:${phone}`;
+  };
+
+  const handleRequestService = (provider: ServiceProvider) => {
+    setSelectedProvider(provider);
+    setShowRequestDialog(true);
+  };
+
+  const submitServiceRequest = async () => {
+    if (!userLocation) {
+      toast({
+        title: "Error",
+        description: "Location is required. Please enable location access.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      toast({
+        title: "Error",
+        description: "Please login to request service",
+        variant: "destructive",
+      });
+      navigate("/auth");
+      return;
+    }
+
+    const { data, error } = await supabase
+      .from("service_requests")
+      .insert({
+        user_id: user.id,
+        service_type: selectedProvider?.service || "General Service",
+        user_location_lat: userLocation.lat,
+        user_location_lng: userLocation.lng,
+        user_address: locationAddress,
+        description: description,
+        status: "pending",
+      })
+      .select()
+      .single();
+
+    if (error) {
+      toast({
+        title: "Error",
+        description: "Failed to create service request",
+        variant: "destructive",
+      });
+    } else {
+      toast({
+        title: "Success",
+        description: "Service request sent successfully!",
+      });
+      setShowRequestDialog(false);
+      setDescription("");
+      navigate(`/track-provider/${data.id}`);
+    }
   };
 
   return (
@@ -171,6 +276,7 @@ const NearbyHelp = () => {
                     variant="default" 
                     size="sm"
                     className="w-full"
+                    onClick={() => handleRequestService(provider)}
                   >
                     Request Service
                   </Button>
@@ -180,6 +286,43 @@ const NearbyHelp = () => {
           ))}
         </div>
       </main>
+
+      <Dialog open={showRequestDialog} onOpenChange={setShowRequestDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Request {selectedProvider?.service}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label>Your Location</Label>
+              <Input 
+                value={locationAddress} 
+                onChange={(e) => setLocationAddress(e.target.value)}
+                placeholder="Enter your address"
+              />
+              {loadingLocation && (
+                <p className="text-xs text-muted-foreground mt-1">Getting location...</p>
+              )}
+            </div>
+            <div>
+              <Label>Description (Optional)</Label>
+              <Textarea
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="Describe your issue or requirements..."
+                rows={3}
+              />
+            </div>
+            <Button 
+              onClick={submitServiceRequest} 
+              className="w-full"
+              disabled={!userLocation || loadingLocation}
+            >
+              Send Request
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <BottomNav />
     </div>
