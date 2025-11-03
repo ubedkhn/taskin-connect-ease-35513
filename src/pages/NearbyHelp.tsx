@@ -27,6 +27,7 @@ interface ServiceProvider {
 const NearbyHelp = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const [searchQuery, setSearchQuery] = useState("");
   const [providers] = useState<ServiceProvider[]>([
     {
       id: 1,
@@ -172,6 +173,17 @@ const NearbyHelp = () => {
     }
   };
 
+  // Filter providers based on search query
+  const filteredProviders = providers.filter((provider) => {
+    const query = searchQuery.toLowerCase().trim();
+    if (!query) return true;
+    
+    return (
+      provider.name.toLowerCase().includes(query) ||
+      provider.service.toLowerCase().includes(query)
+    );
+  });
+
   return (
     <div className="min-h-screen bg-background pb-20">
       {/* Header */}
@@ -192,8 +204,10 @@ const NearbyHelp = () => {
         <div className="relative">
           <Search className="absolute left-3 top-3.5 h-5 w-5 text-muted-foreground" />
           <Input
-            placeholder="Search for services..."
+            placeholder="Search for services or providers..."
             className="pl-11 bg-primary-foreground h-12 border-0"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
           />
         </div>
       </header>
@@ -201,14 +215,25 @@ const NearbyHelp = () => {
       {/* Services Grid */}
       <main className="p-6 space-y-4">
         <div className="flex items-center justify-between">
-          <h2 className="font-semibold">Available Now</h2>
+          <h2 className="font-semibold">
+            {searchQuery ? "Search Results" : "Available Now"}
+          </h2>
           <Badge variant="secondary">
-            {providers.filter((p) => p.available).length} providers
+            {filteredProviders.length} provider{filteredProviders.length !== 1 ? 's' : ''}
           </Badge>
         </div>
 
         <div className="space-y-4">
-          {providers.map((provider) => (
+          {filteredProviders.length === 0 ? (
+            <Card className="p-8 text-center">
+              <p className="text-muted-foreground">
+                {searchQuery 
+                  ? `No providers found matching "${searchQuery}"`
+                  : "No providers available"}
+              </p>
+            </Card>
+          ) : (
+            filteredProviders.map((provider) => (
             <Card
               key={provider.id}
               className="hover:shadow-elevated transition-all"
@@ -283,7 +308,8 @@ const NearbyHelp = () => {
                 </div>
               </CardContent>
             </Card>
-          ))}
+            ))
+          )}
         </div>
       </main>
 
