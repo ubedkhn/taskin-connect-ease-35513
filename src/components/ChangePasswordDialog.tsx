@@ -19,12 +19,12 @@ import { z } from "zod";
 const passwordSchema = z.object({
   current: z.string().min(6, "Current password must be at least 6 characters"),
   new: z.string()
-    .min(12, "Password must be at least 12 characters")
+    .min(8, "Password must be at least 8 characters")
     .regex(/[A-Z]/, "Must contain at least one uppercase letter")
     .regex(/[a-z]/, "Must contain at least one lowercase letter")
     .regex(/[0-9]/, "Must contain at least one number")
     .regex(/[^A-Za-z0-9]/, "Must contain at least one special character"),
-  confirm: z.string().min(12, "Password must be at least 12 characters"),
+  confirm: z.string().min(8, "Password must be at least 8 characters"),
 }).refine((data) => data.new === data.confirm, {
   message: "Passwords don't match",
   path: ["confirm"],
@@ -102,7 +102,7 @@ export const ChangePasswordDialog = () => {
         <DialogHeader>
           <DialogTitle>Change Password</DialogTitle>
           <DialogDescription>
-            Password must be at least 12 characters with uppercase, lowercase, number, and special character.
+            Password must be at least 8 characters with uppercase, lowercase, number, and special character.
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4 py-4">

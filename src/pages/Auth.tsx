@@ -10,6 +10,14 @@ import { Mail, Lock, Users, Wrench } from "lucide-react";
 import { toast } from "sonner";
 import taskinLogo from "@/assets/taskin_logo.jpg";
 import { supabase } from "@/integrations/supabase/client";
+import { z } from "zod";
+
+const signupPasswordSchema = z.string()
+  .min(8, "Password must be at least 8 characters")
+  .regex(/[A-Z]/, "Must contain at least one uppercase letter")
+  .regex(/[a-z]/, "Must contain at least one lowercase letter")
+  .regex(/[0-9]/, "Must contain at least one number")
+  .regex(/[^A-Za-z0-9]/, "Must contain at least one special character");
 
 const Auth = () => {
   const navigate = useNavigate();
@@ -77,6 +85,14 @@ const Auth = () => {
     const email = formData.get("email") as string;
     const password = formData.get("password") as string;
 
+    // Validate password
+    const passwordValidation = signupPasswordSchema.safeParse(password);
+    if (!passwordValidation.success) {
+      toast.error(passwordValidation.error.errors[0].message);
+      setIsLoading(false);
+      return;
+    }
+
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
@@ -97,6 +113,7 @@ const Auth = () => {
 
     if (data.user) {
       toast.success("Account created successfully!");
+      
       
       if (accountType === "service_provider") navigate("/service-provider");
       else navigate("/home");
@@ -224,9 +241,12 @@ const Auth = () => {
                         type="password"
                         placeholder="••••••••"
                         className="pl-10"
-                        minLength={6}
+                        minLength={8}
                         required
                       />
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Min 8 chars with uppercase, lowercase, number, and special character
+                      </p>
                     </div>
                   </div>
                   <Button
