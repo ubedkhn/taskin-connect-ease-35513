@@ -2,13 +2,69 @@ import { Link } from "react-router-dom";
 import { Bell, CheckSquare, MapPin, Zap } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import BottomNav from "@/components/BottomNav";
+import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { useUserRole } from "@/hooks/useUserRole";
 
 const Home = () => {
-  const stats = [
-    { label: "Active Tasks", value: "5", color: "text-primary" },
-    { label: "Completed Today", value: "3", color: "text-success" },
-    { label: "Pending Requests", value: "2", color: "text-warning" },
-  ];
+  const { role } = useUserRole();
+  const [stats, setStats] = useState([
+    { label: "Active Tasks", value: "0", color: "text-primary" },
+    { label: "Completed Today", value: "0", color: "text-success" },
+    { label: "Pending Requests", value: "0", color: "text-warning" },
+  ]);
+
+  useEffect(() => {
+    fetchStats();
+  }, [role]);
+
+  const fetchStats = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      if (role === "service_provider") {
+        // Service provider stats
+        const { data: requests } = await supabase
+          .from("service_requests")
+          .select("status")
+          .eq("service_provider_id", user.id);
+
+        const pending = requests?.filter(r => r.status === "pending").length || 0;
+        const completed = requests?.filter(r => r.status === "completed").length || 0;
+        const accepted = requests?.filter(r => r.status === "accepted").length || 0;
+
+        setStats([
+          { label: "Pending Requests", value: String(pending), color: "text-warning" },
+          { label: "Completed", value: String(completed), color: "text-success" },
+          { label: "Active Jobs", value: String(accepted), color: "text-primary" },
+        ]);
+      } else {
+        // User stats
+        const { data: tasks } = await supabase
+          .from("tasks")
+          .select("completed")
+          .eq("user_id", user.id);
+
+        const { data: requests } = await supabase
+          .from("service_requests")
+          .select("status")
+          .eq("user_id", user.id);
+
+        const activeTasks = tasks?.filter(t => !t.completed).length || 0;
+        const completedToday = tasks?.filter(t => t.completed).length || 0;
+        const pendingRequests = requests?.filter(r => r.status === "pending").length || 0;
+
+        setStats([
+          { label: "Active Tasks", value: String(activeTasks), color: "text-primary" },
+          { label: "Completed Today", value: String(completedToday), color: "text-success" },
+          { label: "Pending Requests", value: String(pendingRequests), color: "text-warning" },
+        ]);
+      }
+    } catch (error) {
+      console.error("Error fetching stats:", error);
+    }
+  };
 
   const quickActions = [
     {

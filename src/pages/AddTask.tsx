@@ -13,20 +13,69 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+import { z } from "zod";
+
+const taskSchema = z.object({
+  title: z.string().min(1, "Title is required").max(200),
+  date: z.string().min(1, "Date is required"),
+  time: z.string().min(1, "Time is required"),
+  priority: z.enum(["low", "medium", "high"]),
+  repeat: z.enum(["none", "daily", "weekly", "monthly", "custom"]),
+});
 
 const AddTask = () => {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
+  const [title, setTitle] = useState("");
+  const [date, setDate] = useState("");
+  const [time, setTime] = useState("");
+  const [priority, setPriority] = useState("medium");
+  const [repeat, setRepeat] = useState("none");
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
 
-    setTimeout(() => {
-      setIsLoading(false);
+    try {
+      const validatedData = taskSchema.parse({
+        title,
+        date,
+        time,
+        priority,
+        repeat,
+      });
+
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        toast.error("You must be logged in to add tasks");
+        return;
+      }
+
+      const { error } = await supabase
+        .from("tasks")
+        .insert({
+          user_id: user.id,
+          title: validatedData.title,
+          date: validatedData.date,
+          time: validatedData.time,
+          priority: validatedData.priority,
+          repeat: validatedData.repeat,
+        });
+
+      if (error) throw error;
+
       toast.success("Reminder added successfully!");
       navigate("/remind-me");
-    }, 1000);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        toast.error(error.errors[0].message);
+      } else {
+        toast.error("Failed to add reminder. Please try again.");
+      }
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -62,6 +111,8 @@ const AddTask = () => {
                   placeholder="e.g., Buy groceries"
                   required
                   className="h-12"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
                 />
               </div>
 
@@ -75,6 +126,8 @@ const AddTask = () => {
                     type="date"
                     className="pl-11 h-12"
                     required
+                    value={date}
+                    onChange={(e) => setDate(e.target.value)}
                   />
                 </div>
               </div>
@@ -89,6 +142,8 @@ const AddTask = () => {
                     type="time"
                     className="pl-11 h-12"
                     required
+                    value={time}
+                    onChange={(e) => setTime(e.target.value)}
                   />
                 </div>
               </div>
@@ -98,7 +153,7 @@ const AddTask = () => {
                 <Label htmlFor="priority">Priority</Label>
                 <div className="relative">
                   <Flag className="absolute left-3 top-3.5 h-5 w-5 text-muted-foreground z-10" />
-                  <Select defaultValue="medium">
+                  <Select value={priority} onValueChange={setPriority}>
                     <SelectTrigger className="pl-11 h-12">
                       <SelectValue placeholder="Select priority" />
                     </SelectTrigger>
@@ -114,7 +169,7 @@ const AddTask = () => {
               {/* Repeat */}
               <div className="space-y-2">
                 <Label htmlFor="repeat">Repeat</Label>
-                <Select defaultValue="none">
+                <Select value={repeat} onValueChange={setRepeat}>
                   <SelectTrigger className="h-12">
                     <SelectValue placeholder="Select repeat" />
                   </SelectTrigger>

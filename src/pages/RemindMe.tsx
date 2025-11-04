@@ -1,50 +1,103 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Plus, Calendar, AlertCircle, CheckCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import BottomNav from "@/components/BottomNav";
 import { Link } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+import { format, isToday, isTomorrow, parseISO } from "date-fns";
 
 interface Task {
-  id: number;
+  id: string;
   title: string;
+  date: string;
   time: string;
   priority: "low" | "medium" | "high";
   completed: boolean;
 }
 
 const RemindMe = () => {
-  const [tasks] = useState<Task[]>([
-    {
-      id: 1,
-      title: "Morning workout",
-      time: "6:00 AM",
-      priority: "high",
-      completed: true,
-    },
-    {
-      id: 2,
-      title: "Team meeting",
-      time: "10:00 AM",
-      priority: "high",
-      completed: false,
-    },
-    {
-      id: 3,
-      title: "Grocery shopping",
-      time: "4:00 PM",
-      priority: "medium",
-      completed: false,
-    },
-    {
-      id: 4,
-      title: "Call dentist",
-      time: "Tomorrow",
-      priority: "low",
-      completed: false,
-    },
-  ]);
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [loading, setLoading] = useState(true);
+  const { toast } = useToast();
+
+  useEffect(() => {
+    fetchTasks();
+  }, []);
+
+  const fetchTasks = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data, error } = await supabase
+        .from("tasks")
+        .select("*")
+        .eq("user_id", user.id)
+        .order("date", { ascending: true })
+        .order("time", { ascending: true });
+
+      if (error) throw error;
+      setTasks((data || []).map(task => ({
+        ...task,
+        priority: task.priority as "low" | "medium" | "high"
+      })));
+    } catch (error) {
+      console.error("Error fetching tasks:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load tasks",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const toggleTaskComplete = async (taskId: string, currentStatus: boolean) => {
+    try {
+      const { error } = await supabase
+        .from("tasks")
+        .update({ completed: !currentStatus })
+        .eq("id", taskId);
+
+      if (error) throw error;
+
+      setTasks(tasks.map(task => 
+        task.id === taskId ? { ...task, completed: !currentStatus } : task
+      ));
+
+      toast({
+        title: "Success",
+        description: !currentStatus ? "Task completed!" : "Task reopened",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update task",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const getTaskCategory = (task: Task): "today" | "tomorrow" | "upcoming" => {
+    const taskDate = parseISO(task.date);
+    if (isToday(taskDate)) return "today";
+    if (isTomorrow(taskDate)) return "tomorrow";
+    return "upcoming";
+  };
+
+  const getDisplayTime = (task: Task): string => {
+    const taskDate = parseISO(task.date);
+    if (isToday(taskDate)) return task.time;
+    if (isTomorrow(taskDate)) return "Tomorrow";
+    return format(taskDate, "MMM d");
+  };
+
+  const todayTasks = tasks.filter(task => getTaskCategory(task) === "today");
+  const upcomingTasks = tasks.filter(task => getTaskCategory(task) !== "today");
 
   const getPriorityColor = (priority: Task["priority"]) => {
     switch (priority) {
@@ -80,20 +133,24 @@ const RemindMe = () => {
             <Calendar className="w-4 h-4 text-primary" />
             <h2 className="font-semibold">Today</h2>
             <Badge variant="secondary" className="ml-auto">
-              {tasks.filter((t) => !t.completed && t.time !== "Tomorrow").length}
+              {todayTasks.filter((t) => !t.completed).length}
             </Badge>
           </div>
 
-          <div className="space-y-3">
-            {tasks
-              .filter((task) => task.time !== "Tomorrow")
-              .map((task) => (
+          {loading ? (
+            <p className="text-center text-muted-foreground py-8">Loading tasks...</p>
+          ) : todayTasks.length === 0 ? (
+            <p className="text-center text-muted-foreground py-8">No tasks for today</p>
+          ) : (
+            <div className="space-y-3">
+              {todayTasks.map((task) => (
                 <Card
                   key={task.id}
                   className={cn(
-                    "transition-all hover:shadow-md",
+                    "transition-all hover:shadow-md cursor-pointer",
                     task.completed && "opacity-60"
                   )}
+                  onClick={() => toggleTaskComplete(task.id, task.completed)}
                 >
                   <CardContent className="p-4">
                     <div className="flex items-start gap-3">
@@ -117,7 +174,7 @@ const RemindMe = () => {
                         >
                           {task.title}
                         </h3>
-                        <p className="text-sm text-muted-foreground mt-1">{task.time}</p>
+                        <p className="text-sm text-muted-foreground mt-1">{getDisplayTime(task)}</p>
                       </div>
 
                       <Badge className={getPriorityColor(task.priority)} variant="secondary">
@@ -127,28 +184,44 @@ const RemindMe = () => {
                   </CardContent>
                 </Card>
               ))}
-          </div>
+            </div>
+          )}
         </section>
 
         {/* Upcoming Tasks */}
-        <section>
-          <div className="flex items-center gap-2 mb-3">
-            <AlertCircle className="w-4 h-4 text-muted-foreground" />
-            <h2 className="font-semibold">Upcoming</h2>
-          </div>
+        {upcomingTasks.length > 0 && (
+          <section>
+            <div className="flex items-center gap-2 mb-3">
+              <AlertCircle className="w-4 h-4 text-muted-foreground" />
+              <h2 className="font-semibold">Upcoming</h2>
+            </div>
 
-          <div className="space-y-3">
-            {tasks
-              .filter((task) => task.time === "Tomorrow")
-              .map((task) => (
-                <Card key={task.id} className="hover:shadow-md transition-all">
+            <div className="space-y-3">
+              {upcomingTasks.map((task) => (
+                <Card 
+                  key={task.id} 
+                  className="hover:shadow-md transition-all cursor-pointer"
+                  onClick={() => toggleTaskComplete(task.id, task.completed)}
+                >
                   <CardContent className="p-4">
                     <div className="flex items-start gap-3">
-                      <div className="w-5 h-5 rounded-full border-2 border-border mt-0.5"></div>
+                      <div 
+                        className={cn(
+                          "w-5 h-5 rounded-full border-2 flex items-center justify-center mt-0.5",
+                          task.completed
+                            ? "bg-success border-success"
+                            : "border-border"
+                        )}
+                      >
+                        {task.completed && <CheckCircle className="w-3 h-3 text-success-foreground" />}
+                      </div>
                       
                       <div className="flex-1">
-                        <h3 className="font-medium">{task.title}</h3>
-                        <p className="text-sm text-muted-foreground mt-1">{task.time}</p>
+                        <h3 className={cn(
+                          "font-medium",
+                          task.completed && "line-through text-muted-foreground"
+                        )}>{task.title}</h3>
+                        <p className="text-sm text-muted-foreground mt-1">{getDisplayTime(task)}</p>
                       </div>
 
                       <Badge className={getPriorityColor(task.priority)} variant="secondary">
@@ -158,8 +231,9 @@ const RemindMe = () => {
                   </CardContent>
                 </Card>
               ))}
-          </div>
-        </section>
+            </div>
+          </section>
+        )}
       </main>
 
       <BottomNav />

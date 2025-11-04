@@ -5,24 +5,82 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
 import BottomNav from "@/components/BottomNav";
 import { useUserRole } from "@/hooks/useUserRole";
 import { toast } from "sonner";
+import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
 
 const Profile = () => {
   const navigate = useNavigate();
   const { role } = useUserRole();
+  const [stats, setStats] = useState([
+    { label: "Tasks Completed", value: "0" },
+    { label: "Services Used", value: "0" },
+    { label: "Active Requests", value: "0" },
+  ]);
   
   const isServiceProvider = role === "service_provider";
   const isUser = role === "user";
+
+  useEffect(() => {
+    fetchStats();
+  }, [role]);
+
+  const fetchStats = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      if (isServiceProvider) {
+        // Service provider stats
+        const { data: requests } = await supabase
+          .from("service_requests")
+          .select("status")
+          .eq("service_provider_id", user.id);
+
+        const completed = requests?.filter(r => r.status === "completed").length || 0;
+        const totalServices = requests?.length || 0;
+        const activeJobs = requests?.filter(r => r.status === "accepted").length || 0;
+
+        setStats([
+          { label: "Jobs Completed", value: String(completed) },
+          { label: "Total Services", value: String(totalServices) },
+          { label: "Active Jobs", value: String(activeJobs) },
+        ]);
+      } else {
+        // User stats
+        const { data: tasks } = await supabase
+          .from("tasks")
+          .select("completed")
+          .eq("user_id", user.id);
+
+        const { data: requests } = await supabase
+          .from("service_requests")
+          .select("status")
+          .eq("user_id", user.id);
+
+        const completedTasks = tasks?.filter(t => t.completed).length || 0;
+        const servicesUsed = requests?.length || 0;
+        const activeRequests = requests?.filter(r => r.status === "pending" || r.status === "accepted").length || 0;
+
+        setStats([
+          { label: "Tasks Completed", value: String(completedTasks) },
+          { label: "Services Used", value: String(servicesUsed) },
+          { label: "Active Requests", value: String(activeRequests) },
+        ]);
+      }
+    } catch (error) {
+      console.error("Error fetching stats:", error);
+    }
+  };
 
   const handlePanelSwitch = () => {
     if (isServiceProvider) {
       navigate("/home");
       toast.success("Switched to User Panel");
     } else if (isUser) {
-      navigate("/service-provider");
+      navigate("/service-provider-panel");
       toast.success("Switched to Service Provider Panel");
     }
   };
@@ -52,12 +110,6 @@ const Profile = () => {
       description: "Get assistance",
       link: "#",
     },
-  ];
-
-  const stats = [
-    { label: "Tasks Completed", value: "45" },
-    { label: "Services Used", value: "12" },
-    { label: "Active Requests", value: "2" },
   ];
 
   return (
