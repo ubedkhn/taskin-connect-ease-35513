@@ -12,6 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import BottomNav from "@/components/BottomNav";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { z } from "zod";
 
 interface ServiceProvider {
   id: number;
@@ -23,6 +24,14 @@ interface ServiceProvider {
   requests: number;
   phone: string;
 }
+
+const serviceRequestSchema = z.object({
+  service_type: z.string().trim().min(2, "Service type must be at least 2 characters").max(100, "Service type must be less than 100 characters"),
+  user_address: z.string().trim().min(5, "Address must be at least 5 characters").max(500, "Address must be less than 500 characters"),
+  description: z.string().trim().max(2000, "Description must be less than 2000 characters").optional(),
+  user_location_lat: z.number().min(-90, "Invalid latitude").max(90, "Invalid latitude"),
+  user_location_lng: z.number().min(-180, "Invalid longitude").max(180, "Invalid longitude"),
+});
 
 const NearbyHelp = () => {
   const navigate = useNavigate();
@@ -142,34 +151,60 @@ const NearbyHelp = () => {
       return;
     }
 
-    const { data, error } = await supabase
-      .from("service_requests")
-      .insert({
-        user_id: user.id,
+    // Validate input data
+    try {
+      const validatedData = serviceRequestSchema.parse({
         service_type: selectedProvider?.service || "General Service",
+        user_address: locationAddress,
+        description: description || "",
         user_location_lat: userLocation.lat,
         user_location_lng: userLocation.lng,
-        user_address: locationAddress,
-        description: description,
-        status: "pending",
-      })
-      .select()
-      .single();
+      });
 
-    if (error) {
-      toast({
-        title: "Error",
-        description: "Failed to create service request",
-        variant: "destructive",
-      });
-    } else {
-      toast({
-        title: "Success",
-        description: "Service request sent successfully!",
-      });
-      setShowRequestDialog(false);
-      setDescription("");
-      navigate(`/track-provider/${data.id}`);
+      const { data, error } = await supabase
+        .from("service_requests")
+        .insert({
+          user_id: user.id,
+          service_type: validatedData.service_type,
+          user_location_lat: validatedData.user_location_lat,
+          user_location_lng: validatedData.user_location_lng,
+          user_address: validatedData.user_address,
+          description: validatedData.description,
+          status: "pending",
+        })
+        .select()
+        .single();
+
+      if (error) {
+        toast({
+          title: "Error",
+          description: "Failed to create service request",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Success",
+          description: "Service request sent successfully!",
+        });
+        setShowRequestDialog(false);
+        setDescription("");
+        navigate(`/track-provider/${data.id}`);
+      }
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        const firstError = error.errors[0];
+        toast({
+          title: "Validation Error",
+          description: firstError.message,
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Error",
+          description: "An unexpected error occurred",
+          variant: "destructive",
+        });
+      }
     }
   };
 
