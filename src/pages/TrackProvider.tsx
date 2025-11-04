@@ -145,6 +145,8 @@ const TrackProvider = () => {
                   }
                 : undefined
             }
+            showApiKeyInput={false}
+            onApiKeyChange={() => {}}
           />
         </div>
 

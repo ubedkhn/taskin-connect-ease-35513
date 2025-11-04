@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { Input } from '@/components/ui/input';
@@ -11,12 +11,12 @@ interface MapViewProps {
   onApiKeyChange?: (key: string) => void;
 }
 
-const MapView: React.FC<MapViewProps> = ({ 
+const MapView = ({ 
   userLocation, 
   providerLocation,
   showApiKeyInput = true,
   onApiKeyChange 
-}) => {
+}: MapViewProps) => {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<mapboxgl.Map | null>(null);
   const userMarker = useRef<mapboxgl.Marker | null>(null);

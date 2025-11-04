@@ -10,10 +10,15 @@ interface ThemeContextType {
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [theme, setTheme] = useState<Theme>(() => {
+  const [theme, setTheme] = useState<Theme>('system');
+
+  // Initialize theme from localStorage
+  useEffect(() => {
     const stored = localStorage.getItem('theme') as Theme;
-    return stored || 'system';
-  });
+    if (stored) {
+      setTheme(stored);
+    }
+  }, []);
 
   useEffect(() => {
     const root = document.documentElement;
