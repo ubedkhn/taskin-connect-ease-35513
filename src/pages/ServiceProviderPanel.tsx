@@ -47,6 +47,7 @@ const ServiceProviderPanel = () => {
         },
         () => {
           fetchRequests();
+          fetchStats();
         }
       )
       .subscribe();
@@ -55,6 +56,44 @@ const ServiceProviderPanel = () => {
       supabase.removeChannel(channel);
     };
   }, []);
+
+  const fetchStats = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data: allRequests } = await supabase
+        .from("service_requests")
+        .select("status, completed_at")
+        .eq("service_provider_id", user.id);
+
+      if (allRequests) {
+        const pending = allRequests.filter(r => r.status === "pending").length;
+        const active = allRequests.filter(r => r.status === "accepted").length;
+        const completed = allRequests.filter(r => r.status === "completed").length;
+        
+        // Calculate completed today
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const completedToday = allRequests.filter(r => 
+          r.status === "completed" && 
+          r.completed_at && 
+          new Date(r.completed_at) >= today
+        ).length;
+
+        setStats({
+          pendingRequests: pending,
+          activeJobs: active,
+          completedToday,
+          totalEarnings: completed * 500, // ₹500 per job
+          rating: 4.8,
+          totalCompleted: completed,
+        });
+      }
+    } catch (error) {
+      console.error("Error fetching stats:", error);
+    }
+  };
 
   const fetchRequests = async () => {
     const { data: { user } } = await supabase.auth.getUser();

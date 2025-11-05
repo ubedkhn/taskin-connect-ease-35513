@@ -29,19 +29,34 @@ const AddTask = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [title, setTitle] = useState("");
   const [date, setDate] = useState("");
-  const [time, setTime] = useState("");
+  const [hours, setHours] = useState("12");
+  const [minutes, setMinutes] = useState("00");
+  const [period, setPeriod] = useState<"AM" | "PM">("AM");
   const [priority, setPriority] = useState("medium");
   const [repeat, setRepeat] = useState("none");
+
+  // Convert 12-hour format to 24-hour format
+  const convertTo24Hour = (hours: string, minutes: string, period: "AM" | "PM"): string => {
+    let hour = parseInt(hours);
+    if (period === "PM" && hour !== 12) {
+      hour += 12;
+    } else if (period === "AM" && hour === 12) {
+      hour = 0;
+    }
+    return `${hour.toString().padStart(2, '0')}:${minutes}`;
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
 
     try {
+      const time24 = convertTo24Hour(hours, minutes, period);
+      
       const validatedData = taskSchema.parse({
         title,
         date,
-        time,
+        time: time24,
         priority,
         repeat,
       });
@@ -135,16 +150,41 @@ const AddTask = () => {
               {/* Time */}
               <div className="space-y-2">
                 <Label htmlFor="time">Time</Label>
-                <div className="relative">
-                  <Clock className="absolute left-3 top-3.5 h-5 w-5 text-muted-foreground" />
-                  <Input
-                    id="time"
-                    type="time"
-                    className="pl-11 h-12"
-                    required
-                    value={time}
-                    onChange={(e) => setTime(e.target.value)}
-                  />
+                <div className="grid grid-cols-3 gap-2">
+                  <div className="relative">
+                    <Clock className="absolute left-3 top-3.5 h-5 w-5 text-muted-foreground z-10" />
+                    <Select value={hours} onValueChange={setHours}>
+                      <SelectTrigger className="pl-11 h-12">
+                        <SelectValue placeholder="HH" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {Array.from({ length: 12 }, (_, i) => {
+                          const hour = (i + 1).toString().padStart(2, '0');
+                          return <SelectItem key={hour} value={hour}>{hour}</SelectItem>;
+                        })}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <Select value={minutes} onValueChange={setMinutes}>
+                    <SelectTrigger className="h-12">
+                      <SelectValue placeholder="MM" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Array.from({ length: 60 }, (_, i) => {
+                        const minute = i.toString().padStart(2, '0');
+                        return <SelectItem key={minute} value={minute}>{minute}</SelectItem>;
+                      })}
+                    </SelectContent>
+                  </Select>
+                  <Select value={period} onValueChange={(value) => setPeriod(value as "AM" | "PM")}>
+                    <SelectTrigger className="h-12">
+                      <SelectValue placeholder="AM/PM" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="AM">AM</SelectItem>
+                      <SelectItem value="PM">PM</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
 

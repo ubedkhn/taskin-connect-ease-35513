@@ -5,6 +5,14 @@ import BottomNav from "@/components/BottomNav";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useUserRole } from "@/hooks/useUserRole";
+import { formatDistanceToNow } from "date-fns";
+
+interface Activity {
+  id: string;
+  message: string;
+  time: string;
+  type: "success" | "primary" | "warning";
+}
 
 const Home = () => {
   const { role } = useUserRole();
@@ -13,9 +21,11 @@ const Home = () => {
     { label: "Completed Today", value: "0", color: "text-success" },
     { label: "Pending Requests", value: "0", color: "text-warning" },
   ]);
+  const [recentActivity, setRecentActivity] = useState<Activity[]>([]);
 
   useEffect(() => {
     fetchStats();
+    fetchRecentActivity();
   }, [role]);
 
   const fetchStats = async () => {
@@ -64,6 +74,98 @@ const Home = () => {
     } catch (error) {
       console.error("Error fetching stats:", error);
     }
+  };
+
+  const fetchRecentActivity = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const activities: Activity[] = [];
+
+      // Fetch completed tasks (last 5)
+      const { data: completedTasks } = await supabase
+        .from("tasks")
+        .select("title, updated_at")
+        .eq("user_id", user.id)
+        .eq("completed", true)
+        .order("updated_at", { ascending: false })
+        .limit(5);
+
+      if (completedTasks) {
+        completedTasks.forEach(task => {
+          activities.push({
+            id: `task-${task.updated_at}`,
+            message: `Completed: ${task.title}`,
+            time: formatDistanceToNow(new Date(task.updated_at), { addSuffix: true }),
+            type: "success"
+          });
+        });
+      }
+
+      // Fetch service requests
+      const { data: serviceRequests } = await supabase
+        .from("service_requests")
+        .select("service_type, status, created_at")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false })
+        .limit(5);
+
+      if (serviceRequests) {
+        serviceRequests.forEach(request => {
+          let message = "";
+          let type: "success" | "primary" | "warning" = "primary";
+          
+          if (request.status === "accepted") {
+            message = `${request.service_type} request accepted`;
+            type = "primary";
+          } else if (request.status === "completed") {
+            message = `${request.service_type} service completed`;
+            type = "success";
+          } else if (request.status === "pending") {
+            message = `${request.service_type} request pending`;
+            type = "warning";
+          }
+
+          if (message) {
+            activities.push({
+              id: `request-${request.created_at}`,
+              message,
+              time: formatDistanceToNow(new Date(request.created_at), { addSuffix: true }),
+              type
+            });
+          }
+        });
+      }
+
+      // Sort by time and take top 5
+      activities.sort((a, b) => {
+        const timeA = a.time.includes("ago") ? new Date(Date.now() - parseTimeAgo(a.time)) : new Date();
+        const timeB = b.time.includes("ago") ? new Date(Date.now() - parseTimeAgo(b.time)) : new Date();
+        return timeB.getTime() - timeA.getTime();
+      });
+
+      setRecentActivity(activities.slice(0, 5));
+    } catch (error) {
+      console.error("Error fetching recent activity:", error);
+    }
+  };
+
+  const parseTimeAgo = (timeString: string): number => {
+    const match = timeString.match(/(\d+)\s+(second|minute|hour|day)s?\s+ago/);
+    if (!match) return 0;
+    
+    const value = parseInt(match[1]);
+    const unit = match[2];
+    
+    const multipliers: { [key: string]: number } = {
+      second: 1000,
+      minute: 60 * 1000,
+      hour: 60 * 60 * 1000,
+      day: 24 * 60 * 60 * 1000
+    };
+    
+    return value * (multipliers[unit] || 0);
   };
 
   const quickActions = [
@@ -154,27 +256,29 @@ const Home = () => {
           <h2 className="text-lg font-semibold mb-4">Recent Activity</h2>
           <Card>
             <CardContent className="p-4 space-y-3">
-              <div className="flex items-center gap-3 pb-3 border-b">
-                <div className="w-2 h-2 rounded-full bg-success"></div>
-                <div className="flex-1">
-                  <p className="text-sm font-medium">Morning workout completed</p>
-                  <p className="text-xs text-muted-foreground">2 hours ago</p>
+              {recentActivity.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  <p className="text-sm">No recent activity</p>
+                  <p className="text-xs">Start using the app to see your activity here</p>
                 </div>
-              </div>
-              <div className="flex items-center gap-3 pb-3 border-b">
-                <div className="w-2 h-2 rounded-full bg-primary"></div>
-                <div className="flex-1">
-                  <p className="text-sm font-medium">Plumber request accepted</p>
-                  <p className="text-xs text-muted-foreground">5 hours ago</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-3">
-                <div className="w-2 h-2 rounded-full bg-warning"></div>
-                <div className="flex-1">
-                  <p className="text-sm font-medium">Team meeting reminder</p>
-                  <p className="text-xs text-muted-foreground">Yesterday</p>
-                </div>
-              </div>
+              ) : (
+                recentActivity.map((activity, index) => (
+                  <div 
+                    key={activity.id} 
+                    className={`flex items-center gap-3 ${index < recentActivity.length - 1 ? 'pb-3 border-b' : ''}`}
+                  >
+                    <div className={`w-2 h-2 rounded-full ${
+                      activity.type === "success" ? "bg-success" :
+                      activity.type === "primary" ? "bg-primary" :
+                      "bg-warning"
+                    }`}></div>
+                    <div className="flex-1">
+                      <p className="text-sm font-medium">{activity.message}</p>
+                      <p className="text-xs text-muted-foreground">{activity.time}</p>
+                    </div>
+                  </div>
+                ))
+              )}
             </CardContent>
           </Card>
         </section>

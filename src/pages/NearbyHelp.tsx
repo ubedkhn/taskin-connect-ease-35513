@@ -240,7 +240,7 @@ const NearbyHelp = () => {
           <Search className="absolute left-3 top-3.5 h-5 w-5 text-muted-foreground" />
           <Input
             placeholder="Search for services or providers..."
-            className="pl-11 bg-primary-foreground h-12 border-0"
+            className="pl-11 bg-primary-foreground text-foreground h-12 border-0"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
