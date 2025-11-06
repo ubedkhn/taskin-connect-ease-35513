@@ -13,21 +13,87 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 const PostRequest = () => {
   const navigate = useNavigate();
+  const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
+  const [serviceType, setServiceType] = useState("");
+  const [description, setDescription] = useState("");
+  const [address, setAddress] = useState("");
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
 
-    setTimeout(() => {
-      setIsLoading(false);
-      toast.success("Request posted successfully!");
+    try {
+      // Get current user
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        toast({
+          title: "Error",
+          description: "Please log in to post a request",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Get user's location
+      let userLat = 0;
+      let userLng = 0;
+
+      if (navigator.geolocation) {
+        const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+          navigator.geolocation.getCurrentPosition(resolve, reject);
+        });
+        userLat = position.coords.latitude;
+        userLng = position.coords.longitude;
+      }
+
+      // Create service request
+      const { data: request, error } = await supabase
+        .from("service_requests")
+        .insert({
+          user_id: user.id,
+          service_type: serviceType,
+          description,
+          user_address: address,
+          user_location_lat: userLat,
+          user_location_lng: userLng,
+          status: "pending",
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      // Call push notification edge function
+      await supabase.functions.invoke("send-push-notification", {
+        body: {
+          requestId: request.id,
+          serviceType,
+          userAddress: address,
+        },
+      });
+
+      toast({
+        title: "Success",
+        description: "Request posted successfully! Service providers will be notified.",
+      });
+
       navigate("/nearby-help");
-    }, 1500);
+    } catch (error) {
+      console.error("Error posting request:", error);
+      toast({
+        title: "Error",
+        description: "Failed to post request. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const serviceCategories = [
@@ -70,13 +136,13 @@ const PostRequest = () => {
               {/* Service Category */}
               <div className="space-y-2">
                 <Label htmlFor="category">Service Category</Label>
-                <Select defaultValue="">
+                <Select value={serviceType} onValueChange={setServiceType}>
                   <SelectTrigger className="h-12">
                     <SelectValue placeholder="Select service type" />
                   </SelectTrigger>
                   <SelectContent>
                     {serviceCategories.map((category) => (
-                      <SelectItem key={category} value={category.toLowerCase()}>
+                      <SelectItem key={category} value={category}>
                         {category}
                       </SelectItem>
                     ))}
@@ -102,6 +168,8 @@ const PostRequest = () => {
                   id="description"
                   placeholder="Describe your requirement in detail..."
                   className="min-h-[120px] resize-none"
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
                   required
                 />
               </div>
@@ -115,6 +183,8 @@ const PostRequest = () => {
                     id="location"
                     placeholder="Enter your address"
                     className="pl-11 h-12"
+                    value={address}
+                    onChange={(e) => setAddress(e.target.value)}
                     required
                   />
                 </div>

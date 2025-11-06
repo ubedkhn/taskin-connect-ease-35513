@@ -21,6 +21,7 @@ import NotFound from "./pages/NotFound";
 import AdminPanel from "./pages/AdminPanel";
 import ServiceProviderPanel from "./pages/ServiceProviderPanel";
 import TrackProvider from "./pages/TrackProvider";
+import Chat from "./pages/Chat";
 import AuthGuard from "./components/AuthGuard";
 
 const queryClient = new QueryClient();
@@ -114,6 +115,11 @@ const App = () => (
             <Route path="/notifications" element={
               <AuthGuard>
                 <Notifications />
+              </AuthGuard>
+            } />
+            <Route path="/chat/:requestId" element={
+              <AuthGuard>
+                <Chat />
               </AuthGuard>
             } />
             

@@ -25,13 +25,14 @@ const ServiceProviderPanel = () => {
   const [loading, setLoading] = useState(true);
   const [isTracking, setIsTracking] = useState(false);
   const [currentRequestId, setCurrentRequestId] = useState<string | null>(null);
-
-  const stats = [
-    { label: "Pending Requests", value: requests.length.toString(), icon: Clock, color: "text-orange-500" },
-    { label: "Completed Today", value: "0", icon: CheckCircle, color: "text-green-500" },
-    { label: "Rating", value: "4.8", icon: Star, color: "text-yellow-500" },
-    { label: "Total Earnings", value: "₹0", icon: CheckCircle, color: "text-blue-500" },
-  ];
+  const [stats, setStats] = useState({
+    pendingRequests: 0,
+    activeJobs: 0,
+    completedToday: 0,
+    totalEarnings: 0,
+    rating: 4.8,
+    totalCompleted: 0,
+  });
 
   useEffect(() => {
     fetchRequests();
@@ -227,20 +228,42 @@ const ServiceProviderPanel = () => {
       <div className="max-w-lg mx-auto px-4 py-6 space-y-6">
         {/* Statistics */}
         <div className="grid grid-cols-2 gap-4">
-          {stats.map((stat) => {
-            const Icon = stat.icon;
-            return (
-              <Card key={stat.label}>
-                <CardContent className="pt-4">
-                  <div className="flex items-center justify-between mb-2">
-                    <Icon className={`w-5 h-5 ${stat.color}`} />
-                    <span className="text-2xl font-bold">{stat.value}</span>
-                  </div>
-                  <p className="text-xs text-muted-foreground">{stat.label}</p>
-                </CardContent>
-              </Card>
-            );
-          })}
+          <Card>
+            <CardContent className="pt-4">
+              <div className="flex items-center justify-between mb-2">
+                <Clock className="w-5 h-5 text-orange-500" />
+                <span className="text-2xl font-bold">{stats.pendingRequests}</span>
+              </div>
+              <p className="text-xs text-muted-foreground">Pending Requests</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="pt-4">
+              <div className="flex items-center justify-between mb-2">
+                <CheckCircle className="w-5 h-5 text-green-500" />
+                <span className="text-2xl font-bold">{stats.completedToday}</span>
+              </div>
+              <p className="text-xs text-muted-foreground">Completed Today</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="pt-4">
+              <div className="flex items-center justify-between mb-2">
+                <Star className="w-5 h-5 text-yellow-500" />
+                <span className="text-2xl font-bold">{stats.rating.toFixed(1)}</span>
+              </div>
+              <p className="text-xs text-muted-foreground">Rating</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="pt-4">
+              <div className="flex items-center justify-between mb-2">
+                <CheckCircle className="w-5 h-5 text-blue-500" />
+                <span className="text-2xl font-bold">₹{stats.totalEarnings}</span>
+              </div>
+              <p className="text-xs text-muted-foreground">Total Earnings</p>
+            </CardContent>
+          </Card>
         </div>
 
         {/* Incoming Requests */}
